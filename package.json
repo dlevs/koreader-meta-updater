@@ -1,24 +1,33 @@
 {
   "name": "koreader-meta-updater",
   "version": "1.0.0",
+  "description": "A CLI tool to sync Calibre library to folder while maintaining KOReader metadata",
   "main": "dist/index.js",
-  "bin": {
-    "koreader-fix": "dist/index.js"
-  },
+  "type": "module",
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["koreader", "epub", "metadata", "cli"],
+  "keywords": [
+    "calibre",
+    "koreader",
+    "epub",
+    "ebook",
+    "sync",
+    "metadata"
+  ],
   "author": "",
   "license": "ISC",
-  "description": "CLI tool to fix KOReader sidecar files when epub filenames are updated",
   "dependencies": {
-    "commander": "^12.0.0"
+    "sqlite3": "^5.1.6",
+    "commander": "^11.1.0"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "typescript": "^5.8.3"
+    "@types/node": "^20.10.0",
+    "@types/sqlite3": "^3.1.11",
+    "tsx": "^4.6.0",
+    "typescript": "^5.3.2"
   }
 }

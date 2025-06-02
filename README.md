@@ -1,8 +1,106 @@
-# KOReader Meta Updater
+# KOReader Meta Updater & Calibre Sync
 
-A TypeScript CLI tool that allows you to rename your epub files without losing your reading progress and bookmarks. When you rename books in your library, KOReader loses track of the associated metadata stored in `.sdr` directories. This tool automatically reconnects renamed epub files to their KOReader sidecar files using numerical IDs, preserving all your reading progress, annotations, and settings.
+A TypeScript CLI tool with two main functions:
 
-## Features
+1. **📚 Calibre → Folder Sync**: Sync your Calibre library to a folder with customizable filename templates and field mappings, while preserving KOReader metadata
+2. **🔄 KOReader Meta Updater**: Fix KOReader metadata when epub files are renamed (legacy functionality)
+
+## 🚀 Calibre Sync (New!)
+
+Sync books from your Calibre library to a target folder with intelligent filename formatting and automatic KOReader metadata preservation.
+
+### Features
+
+- **📋 Template-based Naming**: Use customizable templates like `{#genre} - {author_sort} - {series:|| }{series_index:|| - }{title} ({id})`
+- **🗂️ Field Mapping**: Map Calibre field values (e.g., map "Fiction" → "0100 - Fiction" for sorting)
+- **🔄 KOReader Integration**: Automatically updates .sdr metadata when files are moved/renamed
+- **⚡ Incremental Sync**: Only copies files that have changed
+- **🧹 Cleanup**: Removes obsolete files from target directory
+- **🔍 Dry Run**: Preview changes before applying them
+
+### Quick Start
+
+1. **Generate a config file:**
+   ```bash
+   bun run dev -- config -o my-sync-config.json
+   ```
+
+2. **Edit the config to match your setup:**
+   ```json
+   {
+     "calibreLibraryPath": "/path/to/calibre/library",
+     "syncTargetPath": "/path/to/sync/folder",
+     "koreaderPath": "/path/to/koreader/docsettings",
+     "template": "{#genre} - {author_sort} - {series:|| }{series_index:|| - }{title} ({id})",
+     "fieldMappings": {
+       "#genre": {
+         "Fiction": "0100 - Fiction",
+         "Fantasy": "0200 - Fantasy"
+       }
+     }
+   }
+   ```
+
+3. **Run sync (dry run first):**
+   ```bash
+   # Preview changes
+   bun run dev -- sync --config my-sync-config.json --dry-run
+   
+   # Apply changes
+   bun run dev -- sync --config my-sync-config.json
+   ```
+
+### Template System
+
+The template system supports:
+- **Simple fields**: `{title}`, `{author_sort}`, `{id}`
+- **Conditional content**: `{series:|| }` (show series + " " if series exists)
+- **Field mapping**: `{#genre}` applies mappings to transform values
+- **Series formatting**: `{series:|| }{series_index:|| - }` handles series gracefully
+
+### Field Mapping
+
+Transform Calibre field values before using them in filenames:
+
+```json
+{
+  "fieldMappings": {
+    "#genre": {
+      "Fiction": "0100 - Fiction",
+      "Science Fiction": "0300 - Science Fiction"
+    },
+    "#rating": {
+      "5": "⭐⭐⭐⭐⭐",
+      "4": "⭐⭐⭐⭐"
+    }
+  }
+}
+```
+
+### CLI Commands
+
+```bash
+# Sync books
+bun run dev -- sync [options]
+
+# Generate config file  
+bun run dev -- config [options]
+
+# Options for sync:
+#   -c, --config <path>           Config file path (default: config/sync-config.json)
+#   -d, --dry-run                 Preview changes only
+#   --calibre-library <path>      Override Calibre library path
+#   --sync-target <path>          Override sync target path
+#   --koreader-path <path>        Override KOReader path
+```
+
+---
+
+## 🔧 KOReader Meta Updater (Legacy)
+
+The original functionality for fixing KOReader metadata when epub files are renamed.
+
+### Features
 
 - 🔄 **Automatic Backup**: Creates timestamped backups of your docsettings directory before making changes
 - 🔍 **ID-based Matching**: Matches epub files to sidecar directories using numerical IDs like `(261)` 
@@ -10,19 +108,7 @@ A TypeScript CLI tool that allows you to rename your epub files without losing y
 - 📁 **Directory Renaming**: Renames `.sdr` directories to match updated epub filenames
 - 🛡️ **Safe Operation**: All changes are reversible thanks to automatic backups
 
-## Installation
-
-1. Clone this repository
-2. Install dependencies:
-   ```bash
-   bun install
-   ```
-3. Build the project:
-   ```bash
-   bun run build
-   ```
-
-## Usage
+### Usage
 
 ```bash
 bun start -- --epub-dir ./sample/books --docsettings-dir ./sample/docsettings
@@ -41,17 +127,7 @@ bun start -- --epub-dir ./sample/books --docsettings-dir ./sample/docsettings --
 - `--verbose, -v`: Enable verbose output (optional)
 - `--dry-run`: Show what would be changed without making any modifications (optional)
 
-### Example
-
-```bash
-# Normal operation
-bun start -- -e "./sample/books" -d "./sample/docsettings" -v
-
-# Dry run to preview changes
-bun start -- -e "./sample/books" -d "./sample/docsettings" --dry-run -v
-```
-
-## How It Works
+### How It Works
 
 1. **Backup Creation**: The tool creates a timestamped backup of your entire docsettings directory in `.backups/`
 
@@ -64,43 +140,19 @@ bun start -- -e "./sample/books" -d "./sample/docsettings" --dry-run -v
    - If filenames have changed, renames the `.sdr` directory to match
    - Updates the `doc_path` property in `metadata.epub.lua` to point to the current epub location
 
-## File Structure Example
+---
 
-### Before
-```
-books/
-├── Non-Fiction - Ruffhead, Steven - Writings (261).epub
+## Installation
 
-docsettings/Books/
-├── Ruffhead, Steven - Writings (261).sdr/
-    └── metadata.epub.lua  # Contains old doc_path
-```
-
-### After
-```
-books/
-├── Non-Fiction - Ruffhead, Steven - Writings (261).epub
-
-docsettings/Books/
-├── Ruffhead, Steven - Writings (261).sdr/  # Renamed if needed
-    └── metadata.epub.lua  # Updated doc_path
-
-.backups/
-├── docsettings-backup-2024-01-15T10-30-45-123Z/  # Automatic backup
-```
-
-## ID Extraction Logic
-
-The tool extracts numerical IDs from filenames using the pattern `(number)` before the file extension:
-- `Book Title (123).epub` → ID: `123`
-- `Author Name - Book (456).sdr` → ID: `456`
-
-## Safety Features
-
-- **Automatic Backups**: Every run creates a timestamped backup (skipped in dry-run mode)
-- **Error Handling**: Gracefully handles missing files or permission errors
-- **Dry-run Mode**: Use `--dry-run` to preview changes without making any modifications
-- **Reversible Operations**: All changes can be undone using the backups
+1. Clone this repository
+2. Install dependencies:
+   ```bash
+   bun install
+   ```
+3. Build the project:
+   ```bash
+   bun run build
+   ```
 
 ## Development
 
@@ -112,9 +164,43 @@ bun run build
 ### Project Structure
 ```
 src/
-├── index.ts           # CLI entry point
-└── koreader-fixer.ts  # Main logic
+├── index.ts                    # CLI entry point
+├── koreader-fixer.ts          # Legacy KOReader fixer logic
+└── calibre-sync/              # New Calibre sync functionality
+    ├── types.ts               # Type definitions
+    ├── calibre-reader.ts      # Calibre database interface
+    ├── template-engine.ts     # Filename template system
+    ├── file-operations.ts     # File copy/management
+    ├── koreader-manager.ts    # KOReader .sdr handling
+    ├── main-sync.ts          # Main sync orchestrator
+    └── cli.ts                # CLI interface
 ```
+
+## Examples
+
+### Example 1: Basic Fiction Library
+```json
+{
+  "template": "{#genre} - {author_sort} - {title} ({id})",
+  "fieldMappings": {
+    "#genre": {
+      "Fiction": "01-Fiction",
+      "Non-Fiction": "02-NonFiction"
+    }
+  }
+}
+```
+Result: `01-Fiction - Asimov, Isaac - Foundation (42).epub`
+
+### Example 2: Series-Aware Organization  
+```json
+{
+  "template": "{author_sort} - {series:|| }{series_index:|| - }{title} ({id})"
+}
+```
+Results:
+- `Tolkien, J.R.R. - The Lord of the Rings 1 - The Fellowship of the Ring (123).epub`
+- `King, Stephen - The Stand (456).epub` (no series)
 
 ## License
 
