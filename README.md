@@ -1,6 +1,6 @@
 # KOReader Meta Updater
 
-A TypeScript CLI tool to fix KOReader sidecar files when epub filenames have been updated. This tool automatically matches epub files to their corresponding KOReader `.sdr` directories using numerical IDs and updates the metadata to reflect current file paths.
+A TypeScript CLI tool that allows you to rename your epub files without losing your reading progress and bookmarks. When you rename books in your library, KOReader loses track of the associated metadata stored in `.sdr` directories. This tool automatically reconnects renamed epub files to their KOReader sidecar files using numerical IDs, preserving all your reading progress, annotations, and settings.
 
 ## Features
 
