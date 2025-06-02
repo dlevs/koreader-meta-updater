@@ -1,7 +1,13 @@
-import { BookMetadata, FieldMapping } from './types.js';
+import type { BookMetadata, FieldMapping } from './types.ts';
 
 export class TemplateEngine {
-  constructor(private template: string, private fieldMappings: Record<string, Record<string, string>>) {}
+  private template: string;
+  private fieldMappings: Record<string, Record<string, string>>;
+
+  constructor(template: string, fieldMappings: Record<string, Record<string, string>>) {
+    this.template = template;
+    this.fieldMappings = fieldMappings;
+  }
 
   render(book: BookMetadata & Record<string, any>): string {
     let result = this.template;
@@ -32,18 +38,18 @@ export class TemplateEngine {
     // Handle conditional expressions like {series:|| }
     if (expression.includes(':')) {
       const [field, condition] = expression.split(':', 2);
-      const fieldValue = this.getFieldValue(field, book);
+      const fieldValue = field && this.getFieldValue(field, book);
       
       if (!fieldValue) {
         return '';
       }
 
       // Handle different condition types
-      if (condition.startsWith('||')) {
+      if (condition?.startsWith('||')) {
         // Conditional suffix: show field + suffix if field exists
         const suffix = condition.substring(2).trim();
         return fieldValue + suffix;
-      } else if (condition.endsWith('||')) {
+      } else if (condition?.endsWith('||')) {
         // Conditional prefix: show prefix + field if field exists  
         const prefix = condition.substring(0, condition.length - 2).trim();
         return prefix + fieldValue;
@@ -87,7 +93,12 @@ export class TemplateEngine {
     for (const match of matches) {
       const expression = match.slice(1, -1); // Remove { }
       let fieldName = expression.split(':')[0]; // Get field name before any conditions
-      fieldName = fieldName.replace(/^#/, ''); // Remove # prefix
+      fieldName = fieldName?.replace(/^#/, ''); // Remove # prefix
+
+      if (!fieldName) {
+        throw new Error(`Invalid template: ${match}`);
+      }
+
       fields.add(fieldName);
     }
     

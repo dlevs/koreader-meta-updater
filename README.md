@@ -22,7 +22,7 @@ Sync books from your Calibre library to a target folder with intelligent filenam
 
 1. **Generate a config file:**
    ```bash
-   bun run dev -- config -o my-sync-config.json
+   npm run dev -- config -o my-sync-config.json
    ```
 
 2. **Edit the config to match your setup:**
@@ -44,10 +44,10 @@ Sync books from your Calibre library to a target folder with intelligent filenam
 3. **Run sync (dry run first):**
    ```bash
    # Preview changes
-   bun run dev -- sync --config my-sync-config.json --dry-run
+   npm run dev -- sync --config my-sync-config.json --dry-run
    
    # Apply changes
-   bun run dev -- sync --config my-sync-config.json
+   npm run dev -- sync --config my-sync-config.json
    ```
 
 ### Template System
@@ -81,10 +81,10 @@ Transform Calibre field values before using them in filenames:
 
 ```bash
 # Sync books
-bun run dev -- sync [options]
+npm run dev -- sync [options]
 
 # Generate config file  
-bun run dev -- config [options]
+npm run dev -- config [options]
 
 # Options for sync:
 #   -c, --config <path>           Config file path (default: config/sync-config.json)
@@ -111,13 +111,13 @@ The original functionality for fixing KOReader metadata when epub files are rena
 ### Usage
 
 ```bash
-bun start -- --epub-dir ./sample/books --docsettings-dir ./sample/docsettings
+npm start -- --epub-dir ./sample/books --docsettings-dir ./sample/docsettings
 
 # With verbose output
-bun start -- --epub-dir ./sample/books --docsettings-dir ./sample/docsettings --verbose
+npm start -- --epub-dir ./sample/books --docsettings-dir ./sample/docsettings --verbose
 
 # Dry run mode (see what would change without making modifications)
-bun start -- --epub-dir ./sample/books --docsettings-dir ./sample/docsettings --dry-run --verbose
+npm start -- --epub-dir ./sample/books --docsettings-dir ./sample/docsettings --dry-run --verbose
 ```
 
 ### Arguments
@@ -142,24 +142,17 @@ bun start -- --epub-dir ./sample/books --docsettings-dir ./sample/docsettings --
 
 ---
 
+## Requirements
+
+This project uses Node.js's native TypeScript support introduced in Node.js 23.6. 
+
 ## Installation
 
-1. Clone this repository
-2. Install dependencies:
-   ```bash
-   bun install
-   ```
-3. Build the project:
-   ```bash
-   bun run build
-   ```
-
-## Development
-
-### Building
 ```bash
-bun run build
+npm install
+npm start -- --help
 ```
+
 
 ### Project Structure
 ```
@@ -205,7 +198,3 @@ Results:
 ## License
 
 ISC
-
-## Contributing
-
-Feel free to open issues or submit pull requests for improvements! 

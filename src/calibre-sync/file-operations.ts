@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { BookMetadata } from './types.js';
+import type { BookMetadata } from './types.ts';
 
 export interface CopyResult {
   success: boolean;
@@ -10,7 +10,11 @@ export interface CopyResult {
 }
 
 export class FileOperations {
-  constructor(private dryRun: boolean = false) {}
+  private dryRun: boolean;
+
+  constructor(dryRun: boolean = false) {
+    this.dryRun = dryRun;
+  }
 
   async copyEpubFile(book: BookMetadata, sourcePath: string, targetPath: string): Promise<CopyResult> {
     try {
@@ -130,7 +134,7 @@ export class FileOperations {
   // Extract ID from filename like "Book Title (123).epub"
   static extractIdFromFilename(filename: string): number | null {
     const match = filename.match(/\((\d+)\)\.epub$/i);
-    return match ? parseInt(match[1], 10) : null;
+    return match?.[1] ? parseInt(match[1], 10) : null;
   }
 
   // Build filename with ID

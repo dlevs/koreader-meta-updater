@@ -7,7 +7,13 @@ export interface KOReaderMetadata {
 }
 
 export class KOReaderManager {
-  constructor(private koreaderPath: string, private dryRun: boolean = false) {}
+  private koreaderPath: string;
+  private dryRun: boolean;
+
+  constructor(koreaderPath: string, dryRun: boolean = false) {
+    this.koreaderPath = koreaderPath;
+    this.dryRun = dryRun;
+  }
 
   async findSdrDirectories(bookId: number): Promise<string[]> {
     const sdrDirs: string[] = [];
@@ -48,7 +54,7 @@ export class KOReaderManager {
 
   private extractIdFromSdrName(sdrName: string): number | null {
     const match = sdrName.match(/\((\d+)\)\.sdr$/);
-    return match ? parseInt(match[1], 10) : null;
+    return match?.[1] ? parseInt(match[1], 10) : null;
   }
 
   async updateSdrMetadata(sdrDir: string, newDocPath: string): Promise<boolean> {

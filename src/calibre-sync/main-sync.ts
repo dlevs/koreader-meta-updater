@@ -1,17 +1,19 @@
 import path from 'path';
-import { CalibreReader } from './calibre-reader.js';
-import { TemplateEngine, sanitizeFilename } from './template-engine.js';
-import { FileOperations } from './file-operations.js';
-import { KOReaderManager } from './koreader-manager.js';
-import { BookMetadata, SyncConfig, SyncResult } from './types.js';
+import { CalibreReader } from './calibre-reader.ts';
+import { TemplateEngine, sanitizeFilename } from './template-engine.ts';
+import { FileOperations } from './file-operations.ts';
+import { KOReaderManager } from './koreader-manager.ts';
+import type { BookMetadata, SyncConfig, SyncResult } from './types.ts';
 
 export class CalibreSync {
+  private config: SyncConfig;
   private calibreReader: CalibreReader;
   private templateEngine: TemplateEngine;
   private fileOps: FileOperations;
   private koreaderManager: KOReaderManager;
 
-  constructor(private config: SyncConfig) {
+  constructor(config: SyncConfig) {
+    this.config = config;
     this.calibreReader = new CalibreReader(config.calibreLibraryPath);
     this.templateEngine = new TemplateEngine(config.template, config.fieldMappings);
     this.fileOps = new FileOperations(config.dryRun);
@@ -123,7 +125,7 @@ export class CalibreSync {
     
     try {
       const epubFiles = await this.fileOps.findEpubFiles(bookDir);
-      return epubFiles.length > 0 ? epubFiles[0] : null;
+      return epubFiles[0] ?? null;
     } catch (error) {
       return null;
     }

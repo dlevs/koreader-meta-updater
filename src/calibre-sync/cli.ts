@@ -1,8 +1,8 @@
 import { Command } from 'commander';
 import fs from 'fs/promises';
 import path from 'path';
-import { CalibreSync } from './main-sync.js';
-import { SyncConfig } from './types.js';
+import { CalibreSync } from './main-sync.ts';
+import type { SyncConfig } from './types.ts';
 
 const program = new Command();
 

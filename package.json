@@ -4,10 +4,12 @@
   "description": "A CLI tool to sync Calibre library to folder while maintaining KOReader metadata",
   "main": "dist/index.js",
   "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "tsx src/index.ts",
+    "start": "node src/index.ts",
+    "typecheck": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -27,7 +29,6 @@
   "devDependencies": {
     "@types/node": "^20.10.0",
     "@types/sqlite3": "^3.1.11",
-    "tsx": "^4.6.0",
     "typescript": "^5.3.2"
   }
 }

@@ -19,7 +19,7 @@ interface SidecarDir {
  */
 function extractId(filename: string): string | null {
   const match = filename.match(/\((\d+)\)\.(?:epub|sdr)$/);
-  return match ? match[1] : null;
+  return match?.[1] ?? null;
 }
 
 /**
@@ -194,7 +194,7 @@ function generateNewFilename(epubFilename: string): string {
   
   // If there's a " - " pattern that looks like a category prefix, remove it
   const prefixMatch = cleanName.match(/^[^-]+ - (.+)$/);
-  if (prefixMatch) {
+  if (prefixMatch?.[1]) {
     cleanName = prefixMatch[1];
   }
   

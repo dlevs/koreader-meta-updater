@@ -1,18 +1,21 @@
-import Database from 'sqlite3';
+import sqlite3 from 'sqlite3';
 import { promisify } from 'util';
 import path from 'path';
-import { BookMetadata } from './types.js';
+import type { BookMetadata } from './types.ts';
 
 export class CalibreReader {
-  private db: Database.Database | null = null;
+  private db: sqlite3.Database | null = null;
+  private libraryPath: string;
 
-  constructor(private libraryPath: string) {}
+  constructor(libraryPath: string) {
+    this.libraryPath = libraryPath;
+  }
 
   async connect(): Promise<void> {
     const dbPath = path.join(this.libraryPath, 'metadata.db');
     
     return new Promise((resolve, reject) => {
-      this.db = new Database.Database(dbPath, (err: Error | null) => {
+      this.db = new sqlite3.Database(dbPath, (err: Error | null) => {
         if (err) {
           reject(new Error(`Failed to open Calibre database at ${dbPath}: ${err.message}`));
         } else {
