@@ -1,0 +1,24 @@
+{
+  "name": "koreader-meta-updater",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "bin": {
+    "koreader-fix": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["koreader", "epub", "metadata", "cli"],
+  "author": "",
+  "license": "ISC",
+  "description": "CLI tool to fix KOReader sidecar files when epub filenames are updated",
+  "dependencies": {
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.3"
+  }
+}
