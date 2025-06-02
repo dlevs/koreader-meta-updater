@@ -16,8 +16,6 @@ A TypeScript CLI tool to fix KOReader sidecar files when epub filenames have bee
 2. Install dependencies:
    ```bash
    bun install
-   # or
-   bun install
    ```
 3. Build the project:
    ```bash
