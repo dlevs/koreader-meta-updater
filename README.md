@@ -1,15 +1,11 @@
-# KOReader Meta Updater & Calibre Sync
+# Calibre Sync
 
-A TypeScript CLI tool with two main functions:
+A TypeScript CLI tool that syncs your Calibre library to a folder with customizable filename templates and field mappings, while preserving KOReader metadata.
 
-1. **📚 Calibre → Folder Sync**: Sync your Calibre library to a folder with customizable filename templates and field mappings, while preserving KOReader metadata
-2. **🔄 KOReader Meta Updater**: Fix KOReader metadata when epub files are renamed (legacy functionality)
+> [!Warning]
+> This project was vibe coded. If it deletes your library, I take no responsibility. Back stuff up first.
 
-## 🚀 Calibre Sync (New!)
-
-Sync books from your Calibre library to a target folder with intelligent filename formatting and automatic KOReader metadata preservation.
-
-### Features
+## 🚀 Features
 
 - **📋 Template-based Naming**: Use customizable templates like `{#genre} - {author_sort} - {series:|| }{series_index:|| - }{title} ({id})`
 - **🗂️ Field Mapping**: Map Calibre field values (e.g., map "Fiction" → "0100 - Fiction" for sorting)
@@ -17,7 +13,7 @@ Sync books from your Calibre library to a target folder with intelligent filenam
 - **⚡ Incremental Sync**: Only copies files that have changed
 - **🧹 Cleanup**: Removes obsolete files from target directory
 
-### Quick Start
+## Quick Start
 
 1. **Generate a config file:**
    ```bash
@@ -45,7 +41,7 @@ Sync books from your Calibre library to a target folder with intelligent filenam
    npm run dev -- sync --config my-sync-config.json
    ```
 
-### Template System
+## Template System
 
 The template system supports:
 - **Simple fields**: `{title}`, `{author_sort}`, `{id}`
@@ -53,7 +49,7 @@ The template system supports:
 - **Field mapping**: `{#genre}` applies mappings to transform values
 - **Series formatting**: `{series:|| }{series_index:|| - }` handles series gracefully
 
-### Field Mapping
+## Field Mapping
 
 Transform Calibre field values before using them in filenames:
 
@@ -72,7 +68,7 @@ Transform Calibre field values before using them in filenames:
 }
 ```
 
-### CLI Commands
+## CLI Commands
 
 ```bash
 # Sync books
@@ -88,50 +84,6 @@ npm run dev -- config [options]
 #   --koreader-path <path>        Override KOReader path
 ```
 
----
-
-## 🔧 KOReader Meta Updater (Legacy)
-
-The original functionality for fixing KOReader metadata when epub files are renamed.
-
-### Features
-
-- 🔄 **Automatic Backup**: Creates timestamped backups of your docsettings directory before making changes
-- 🔍 **ID-based Matching**: Matches epub files to sidecar directories using numerical IDs like `(261)` 
-- 📝 **Metadata Updates**: Updates the `doc_path` property in `metadata.epub.lua` files
-- 📁 **Directory Renaming**: Renames `.sdr` directories to match updated epub filenames
-- 🛡️ **Safe Operation**: All changes are reversible thanks to automatic backups
-
-### Usage
-
-```bash
-npm start -- --epub-dir ./sample/books --docsettings-dir ./sample/docsettings
-
-# With verbose output
-npm start -- --epub-dir ./sample/books --docsettings-dir ./sample/docsettings --verbose
-```
-
-### Arguments
-
-- `--epub-dir, -e`: Directory containing your epub files
-- `--docsettings-dir, -d`: Directory containing KOReader docsettings
-- `--verbose, -v`: Enable verbose output (optional)
-
-### How It Works
-
-1. **Backup Creation**: The tool creates a timestamped backup of your entire docsettings directory in `.backups/`
-
-2. **File Scanning**: 
-   - Scans the epub directory for `.epub` files with numerical IDs like `Title (123).epub`
-   - Recursively scans the docsettings directory for `.sdr` directories with matching IDs
-
-3. **Matching & Updates**:
-   - Matches epub files to sidecar directories using the numerical ID
-   - If filenames have changed, renames the `.sdr` directory to match
-   - Updates the `doc_path` property in `metadata.epub.lua` to point to the current epub location
-
----
-
 ## Requirements
 
 This project uses Node.js's native TypeScript support introduced in Node.js 23.6. 
@@ -143,12 +95,11 @@ npm install
 npm start -- --help
 ```
 
-
-### Project Structure
+## Project Structure
 ```
 src/
 ├── index.ts                    # CLI entry point
-└── calibre-sync/              # New Calibre sync functionality
+└── calibre-sync/              # Calibre sync functionality
     ├── types.ts               # Type definitions
     ├── calibre-reader.ts      # Calibre database interface
     ├── template-engine.ts     # Filename template system
