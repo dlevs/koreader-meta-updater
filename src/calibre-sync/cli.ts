@@ -72,6 +72,7 @@ program
       syncTargetPath: '/path/to/your/sync/folder',
       koreaderPath: '/path/to/your/koreader/docsettings',
       template: '{#genre} - {author_sort} - {series:|| }{series_index:|| - }{title} ({id})',
+      supportedExtensions: ['.epub', '.cbz', '.pdf', '.mobi', '.azw3', '.fb2'],
       fieldMappings: {
         '#genre': {
           'Fiction': '0100 - Fiction',

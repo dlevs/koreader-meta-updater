@@ -16,7 +16,7 @@ export class CalibreSync {
     this.config = config;
     this.calibreClient = new CalibreClient(config.calibreLibraryPath);
     this.templateEngine = new TemplateEngine(config.template, config.fieldMappings);
-    this.fileOps = new FileOperations();
+    this.fileOps = new FileOperations(config.supportedExtensions);
     this.koreaderManager = new KOReaderManager(config.koreaderPath);
   }
 
@@ -51,24 +51,26 @@ export class CalibreSync {
 
           console.dir(book, { depth: null });
 
+          // Find preferred format from available formats
+          const preferredFormat = this.getPreferredFormat(enrichedBook.formats || []);
+          
+          if (!preferredFormat) {
+            result.errors.push({
+              book: `${book.title} (${book.id})`,
+              error: `No supported format found. Available: ${enrichedBook.formats?.join(', ') || 'none'}`
+            });
+            continue;
+          }
+
           // Generate filename using template
           const baseName = this.templateEngine.render(enrichedBook);
           const safeBaseName = sanitizeFilename(baseName);
-          const filename = FileOperations.buildFilenameWithId(safeBaseName, book.id);
+          const filename = FileOperations.buildFilenameWithId(safeBaseName, book.id, preferredFormat.toLowerCase());
           
           currentFiles.add(filename);
 
           // Target path for sync
           const targetPath = path.join(this.config.syncTargetPath, filename);
-
-          // Check if book has EPUB format
-          if (!enrichedBook.formats?.includes('EPUB')) {
-            result.errors.push({
-              book: `${book.title} (${book.id})`,
-              error: 'No EPUB format found'
-            });
-            continue;
-          }
 
           // Check if file needs updating (compare book's last_modified with target file)
           const needsUpdate = await this.bookNeedsUpdate(enrichedBook, targetPath);
@@ -124,12 +126,34 @@ export class CalibreSync {
     return result;
   }
 
-  private async findBookEpubPath(book: BookMetadata): Promise<string | null> {
+  private getPreferredFormat(availableFormats: string[]): string | null {
+    // Define format preference order (EPUB is preferred, then others)
+    const formatPreference = ['EPUB', 'CBZ', 'PDF', 'MOBI', 'AZW3', 'FB2'];
+    
+    for (const preferredFormat of formatPreference) {
+      if (availableFormats.includes(preferredFormat)) {
+        return preferredFormat;
+      }
+    }
+    
+    // If none of the preferred formats are available, check if any available format is supported
+    const supportedExtensions = this.fileOps.getSupportedExtensions();
+    for (const format of availableFormats) {
+      const extension = `.${format.toLowerCase()}`;
+      if (supportedExtensions.includes(extension)) {
+        return format;
+      }
+    }
+    
+    return null;
+  }
+
+  private async findBookFilePath(book: BookMetadata): Promise<string | null> {
     const bookDir = path.join(this.config.calibreLibraryPath, book.path);
     
     try {
-      const epubFiles = await this.fileOps.findEpubFiles(bookDir);
-      return epubFiles[0] ?? null;
+      const bookFiles = await this.fileOps.findBookFiles(bookDir);
+      return bookFiles[0] ?? null;
     } catch (error) {
       return null;
     }
@@ -148,7 +172,8 @@ export class CalibreSync {
         
         // Rename .sdr directory if needed
         const currentSdrName = path.basename(sdrDir);
-        const expectedSdrName = filename.replace(/\.epub$/i, '.sdr');
+        const fileExtension = FileOperations.getFileExtension(filename);
+        const expectedSdrName = filename.replace(new RegExp(`\\${fileExtension}$`, 'i'), '.sdr');
         
         if (currentSdrName !== expectedSdrName) {
           const newSdrPath = await this.koreaderManager.renameSdrDirectory(sdrDir, filename);

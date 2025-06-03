@@ -56,12 +56,36 @@ export class KOReaderManager {
   }
 
   async updateSdrMetadata(sdrDir: string, newDocPath: string): Promise<boolean> {
-    const metadataFile = path.join(sdrDir, 'metadata.epub.lua');
+    // Try to find the metadata file - KOReader creates different metadata files for different formats
+    const possibleMetadataFiles = [
+      'metadata.epub.lua',  // EPUB
+      'metadata.pdf.lua',   // PDF  
+      'metadata.cbz.lua',   // CBZ
+      'metadata.mobi.lua',  // MOBI
+      'metadata.azw3.lua',  // AZW3
+      'metadata.fb2.lua'    // FB2
+    ];
+    
+    let metadataFile: string | null = null;
+    
+    // Find existing metadata file
+    for (const filename of possibleMetadataFiles) {
+      const filepath = path.join(sdrDir, filename);
+      try {
+        await fs.access(filepath);
+        metadataFile = filepath;
+        break;
+      } catch {
+        // File doesn't exist, continue
+      }
+    }
+    
+    if (!metadataFile) {
+      console.warn(`Warning: No metadata file found in ${sdrDir}`);
+      return false;
+    }
     
     try {
-      // Check if metadata file exists
-      await fs.access(metadataFile);
-      
       // Read current metadata
       const content = await fs.readFile(metadataFile, 'utf-8');
       
@@ -73,7 +97,7 @@ export class KOReaderManager {
         return true;
       }
       
-      return content !== updatedContent;
+      return false;
     } catch (error) {
       console.warn(`Warning: Could not update metadata in ${metadataFile}: ${error}`);
       return false;
@@ -103,7 +127,7 @@ export class KOReaderManager {
   async renameSdrDirectory(oldPath: string, newFilename: string): Promise<string | null> {
     try {
       const dir = path.dirname(oldPath);
-      const newSdrName = newFilename.replace(/\.epub$/i, '.sdr');
+      const newSdrName = this.buildSdrNameFromFilename(newFilename);
       const newPath = path.join(dir, newSdrName);
       
       if (oldPath !== newPath) {
@@ -117,7 +141,17 @@ export class KOReaderManager {
     }
   }
 
-  static buildSdrPath(epubPath: string): string {
-    return epubPath.replace(/\.epub$/i, '.sdr');
+  private buildSdrNameFromFilename(filename: string): string {
+    // Remove any file extension and add .sdr
+    const extension = path.extname(filename);
+    const baseName = filename.substring(0, filename.length - extension.length);
+    return `${baseName}.sdr`;
+  }
+
+  static buildSdrPath(bookPath: string): string {
+    // Remove any file extension and add .sdr
+    const extension = path.extname(bookPath);
+    const basePath = bookPath.substring(0, bookPath.length - extension.length);
+    return `${basePath}.sdr`;
   }
 } 

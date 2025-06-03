@@ -7,6 +7,7 @@ A TypeScript CLI tool that syncs your Calibre library to a folder with customiza
 
 ## 🚀 Features
 
+- **📚 Multi-Format Support**: Handles EPUB, CBZ, PDF, MOBI, AZW3, and FB2 formats
 - **📋 Template-based Naming**: Use customizable templates like `{#genre} - {author_sort} - {series:|| }{series_index:|| - }{title} ({id})`
 - **🗂️ Field Mapping**: Map Calibre field values (e.g., map "Fiction" → "0100 - Fiction" for sorting)
 - **🔄 KOReader Integration**: Automatically updates .sdr metadata when files are moved/renamed
@@ -27,6 +28,7 @@ A TypeScript CLI tool that syncs your Calibre library to a folder with customiza
      "syncTargetPath": "/path/to/sync/folder",
      "koreaderPath": "/path/to/koreader/docsettings",
      "template": "{#genre} - {author_sort} - {series:|| }{series_index:|| - }{title} ({id})",
+     "supportedExtensions": [".epub", ".cbz", ".pdf", ".mobi", ".azw3", ".fb2"],
      "fieldMappings": {
        "#genre": {
          "Fiction": "0100 - Fiction",
@@ -40,6 +42,23 @@ A TypeScript CLI tool that syncs your Calibre library to a folder with customiza
    ```bash
    npm run dev -- sync --config my-sync-config.json
    ```
+
+## Configuration Options
+
+### Core Settings
+- `calibreLibraryPath`: Path to your Calibre library directory
+- `syncTargetPath`: Where to sync books to
+- `koreaderPath`: Path to KOReader's docsettings directory
+- `template`: Filename template pattern
+
+### File Format Support
+- `supportedExtensions`: Array of file extensions to sync (e.g., `[".epub", ".cbz", ".pdf"]`)
+- The tool will prefer EPUB format when available, then fall back to other supported formats in order
+
+### Advanced Settings
+- `fieldMappings`: Transform field values before using in filenames
+- `mappedFields`: List of fields that use mappings
+- `backupSdrFiles`: Whether to backup .sdr files before modifying
 
 ## Template System
 

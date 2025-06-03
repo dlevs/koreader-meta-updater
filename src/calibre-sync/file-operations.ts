@@ -10,10 +10,13 @@ export interface CopyResult {
 }
 
 export class FileOperations {
-  constructor() {
+  private supportedExtensions: string[];
+
+  constructor(supportedExtensions: string[] = ['.epub', '.cbz', '.pdf', '.mobi', '.azw3', '.fb2']) {
+    this.supportedExtensions = supportedExtensions.map(ext => ext.toLowerCase());
   }
 
-  async copyEpubFile(book: BookMetadata, sourcePath: string, targetPath: string): Promise<CopyResult> {
+  async copyBookFile(book: BookMetadata, sourcePath: string, targetPath: string): Promise<CopyResult> {
     try {
       // Ensure target directory exists
       const targetDir = path.dirname(targetPath);
@@ -81,7 +84,7 @@ export class FileOperations {
     const removed: string[] = [];
     
     try {
-      const existingFiles = await this.findEpubFiles(targetDir);
+      const existingFiles = await this.findBookFiles(targetDir);
       
       for (const filePath of existingFiles) {
         const fileName = path.basename(filePath);
@@ -97,8 +100,8 @@ export class FileOperations {
     return removed;
   }
 
-  async findEpubFiles(directory: string): Promise<string[]> {
-    const epubFiles: string[] = [];
+  async findBookFiles(directory: string): Promise<string[]> {
+    const bookFiles: string[] = [];
     
     try {
       const entries = await fs.readdir(directory, { withFileTypes: true });
@@ -107,31 +110,54 @@ export class FileOperations {
         const fullPath = path.join(directory, entry.name);
         
         if (entry.isDirectory()) {
-          const subFiles = await this.findEpubFiles(fullPath);
-          epubFiles.push(...subFiles);
-        } else if (entry.name.toLowerCase().endsWith('.epub')) {
-          epubFiles.push(fullPath);
+          const subFiles = await this.findBookFiles(fullPath);
+          bookFiles.push(...subFiles);
+        } else if (this.isSupportedBookFile(entry.name)) {
+          bookFiles.push(fullPath);
         }
       }
     } catch (error) {
       // Directory doesn't exist or can't be read
     }
 
-    return epubFiles;
+    return bookFiles;
+  }
+
+  private isSupportedBookFile(filename: string): boolean {
+    const extension = path.extname(filename).toLowerCase();
+    return this.supportedExtensions.includes(extension);
   }
 
   async ensureDirectoryExists(dirPath: string): Promise<void> {
     await fs.mkdir(dirPath, { recursive: true });
   }
 
-  // Extract ID from filename like "Book Title (123).epub"
+  // Extract ID from filename like "Book Title (123).epub" or "Book Title (123).cbz" etc.
   static extractIdFromFilename(filename: string): number | null {
-    const match = filename.match(/\((\d+)\)\.epub$/i);
+    // Match pattern like "(123).ext" where ext is any supported extension
+    const match = filename.match(/\((\d+)\)\.[^.]+$/i);
     return match?.[1] ? parseInt(match[1], 10) : null;
   }
 
-  // Build filename with ID
-  static buildFilenameWithId(baseName: string, id: number): string {
-    return `${baseName} (${id}).epub`;
+  // Build filename with ID, preserving the original extension
+  static buildFilenameWithId(baseName: string, id: number, extension: string): string {
+    // Ensure extension starts with a dot
+    const ext = extension.startsWith('.') ? extension : `.${extension}`;
+    return `${baseName} (${id})${ext}`;
+  }
+
+  // Get file extension from a filename
+  static getFileExtension(filename: string): string {
+    return path.extname(filename);
+  }
+
+  // Check if a file extension is supported
+  isSupportedExtension(extension: string): boolean {
+    return this.supportedExtensions.includes(extension.toLowerCase());
+  }
+
+  // Get list of supported extensions
+  getSupportedExtensions(): string[] {
+    return [...this.supportedExtensions];
   }
 } 

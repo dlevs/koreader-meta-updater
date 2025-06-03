@@ -17,6 +17,7 @@ export interface SyncConfig {
   syncTargetPath: string;
   koreaderPath: string;
   template: string;
+  supportedExtensions: string[];
   fieldMappings: Record<string, Record<string, string>>;
   mappedFields: string[];
   backupSdrFiles: boolean;
