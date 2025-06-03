@@ -10,10 +10,7 @@ export interface CopyResult {
 }
 
 export class FileOperations {
-  private dryRun: boolean;
-
-  constructor(dryRun: boolean = false) {
-    this.dryRun = dryRun;
+  constructor() {
   }
 
   async copyEpubFile(book: BookMetadata, sourcePath: string, targetPath: string): Promise<CopyResult> {
@@ -21,9 +18,7 @@ export class FileOperations {
       // Ensure target directory exists
       const targetDir = path.dirname(targetPath);
       
-      if (!this.dryRun) {
-        await fs.mkdir(targetDir, { recursive: true });
-      }
+      await fs.mkdir(targetDir, { recursive: true });
 
       // Check if file already exists and is newer
       const shouldCopy = await this.shouldCopyFile(sourcePath, targetPath);
@@ -37,13 +32,11 @@ export class FileOperations {
         };
       }
 
-      if (!this.dryRun) {
-        await fs.copyFile(sourcePath, targetPath);
-        
-        // Copy file timestamps
-        const stats = await fs.stat(sourcePath);
-        await fs.utimes(targetPath, stats.atime, stats.mtime);
-      }
+      await fs.copyFile(sourcePath, targetPath);
+      
+      // Copy file timestamps
+      const stats = await fs.stat(sourcePath);
+      await fs.utimes(targetPath, stats.atime, stats.mtime);
 
       return {
         success: true,
@@ -80,6 +73,10 @@ export class FileOperations {
     }
   }
 
+  async needsUpdate(sourcePath: string, targetPath: string): Promise<boolean> {
+    return this.shouldCopyFile(sourcePath, targetPath);
+  }
+
   async removeObsoleteFiles(targetDir: string, currentFiles: Set<string>): Promise<string[]> {
     const removed: string[] = [];
     
@@ -89,9 +86,7 @@ export class FileOperations {
       for (const filePath of existingFiles) {
         const fileName = path.basename(filePath);
         if (!currentFiles.has(fileName)) {
-          if (!this.dryRun) {
-            await fs.unlink(filePath);
-          }
+          await fs.unlink(filePath);
           removed.push(filePath);
         }
       }
@@ -126,9 +121,7 @@ export class FileOperations {
   }
 
   async ensureDirectoryExists(dirPath: string): Promise<void> {
-    if (!this.dryRun) {
-      await fs.mkdir(dirPath, { recursive: true });
-    }
+    await fs.mkdir(dirPath, { recursive: true });
   }
 
   // Extract ID from filename like "Book Title (123).epub"

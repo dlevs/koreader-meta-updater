@@ -27,6 +27,5 @@
     }
   },
   "mappedFields": ["#genre"],
-  "backupSdrFiles": true,
-  "dryRun": false
+  "backupSdrFiles": true
 } 

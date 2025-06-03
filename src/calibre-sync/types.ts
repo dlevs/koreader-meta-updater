@@ -20,7 +20,6 @@ export interface SyncConfig {
   fieldMappings: Record<string, Record<string, string>>;
   mappedFields: string[];
   backupSdrFiles: boolean;
-  dryRun: boolean;
 }
 
 export interface SyncResult {

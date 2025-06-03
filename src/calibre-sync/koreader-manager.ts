@@ -8,11 +8,9 @@ export interface KOReaderMetadata {
 
 export class KOReaderManager {
   private koreaderPath: string;
-  private dryRun: boolean;
 
-  constructor(koreaderPath: string, dryRun: boolean = false) {
+  constructor(koreaderPath: string) {
     this.koreaderPath = koreaderPath;
-    this.dryRun = dryRun;
   }
 
   async findSdrDirectories(bookId: number): Promise<string[]> {
@@ -70,7 +68,7 @@ export class KOReaderManager {
       // Update doc_path
       const updatedContent = this.updateDocPath(content, newDocPath);
       
-      if (!this.dryRun && content !== updatedContent) {
+      if (content !== updatedContent) {
         await fs.writeFile(metadataFile, updatedContent, 'utf-8');
         return true;
       }
@@ -108,7 +106,7 @@ export class KOReaderManager {
       const newSdrName = newFilename.replace(/\.epub$/i, '.sdr');
       const newPath = path.join(dir, newSdrName);
       
-      if (!this.dryRun && oldPath !== newPath) {
+      if (oldPath !== newPath) {
         await fs.rename(oldPath, newPath);
       }
       

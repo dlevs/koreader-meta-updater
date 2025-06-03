@@ -15,7 +15,6 @@ program
   .command('sync')
   .description('Sync books from Calibre to target folder')
   .option('-c, --config <path>', 'Path to config file', 'config/sync-config.json')
-  .option('-d, --dry-run', 'Preview changes without making them')
   .option('-v, --verbose', 'Verbose output')
   .option('--calibre-library <path>', 'Override Calibre library path')
   .option('--sync-target <path>', 'Override sync target path')
@@ -29,16 +28,12 @@ program
       if (options.calibreLibrary) config.calibreLibraryPath = options.calibreLibrary;
       if (options.syncTarget) config.syncTargetPath = options.syncTarget;
       if (options.koreaderPath) config.koreaderPath = options.koreaderPath;
-      if (options.dryRun) config.dryRun = true;
 
       // Validate paths
       await validateConfig(config);
 
       // Run sync
       console.log('🚀 Starting Calibre → Folder sync...');
-      if (config.dryRun) {
-        console.log('📋 DRY RUN MODE - No changes will be made\n');
-      }
 
       const sync = new CalibreSync(config);
       const result = await sync.sync();
@@ -57,10 +52,8 @@ program
         }
       }
 
-      if (!config.dryRun && result.updated > 0) {
+      if (result.updated > 0) {
         console.log('\n✨ Sync completed successfully!');
-      } else if (config.dryRun) {
-        console.log('\n📋 Dry run completed. Use --no-dry-run to apply changes.');
       }
 
     } catch (error) {
@@ -89,8 +82,7 @@ program
         }
       },
       mappedFields: ['#genre'],
-      backupSdrFiles: true,
-      dryRun: false
+      backupSdrFiles: true
     };
 
     try {

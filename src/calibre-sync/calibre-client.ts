@@ -1,9 +1,12 @@
 import sqlite3 from 'sqlite3';
-import { promisify } from 'util';
 import path from 'path';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import type { BookMetadata } from './types.ts';
 
-export class CalibreReader {
+const execAsync = promisify(exec);
+
+export class CalibreClient {
   private db: sqlite3.Database | null = null;
   private libraryPath: string;
 
@@ -153,5 +156,75 @@ export class CalibreReader {
         });
       });
     }
+  }
+
+  /**
+   * Export a book to EPUB format with embedded metadata using calibredb
+   */
+  async exportBook(bookId: number, outputPath: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Create a temporary directory for export
+      const fs = await import('fs/promises');
+      const os = await import('os');
+      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'calibre-export-'));
+      
+      try {
+        // Use calibredb to export the book with embedded metadata
+        const command = `calibredb export --library-path="${this.libraryPath}" --formats=EPUB --single-dir --to-dir="${tempDir}" ${bookId}`;
+        
+        const { stdout, stderr } = await execAsync(command);
+        
+        if (stderr && !stderr.includes('WARNING')) {
+          return { success: false, error: stderr };
+        }
+
+        // Find the exported EPUB file in the temp directory
+        const files = await fs.readdir(tempDir);
+        const epubFile = files.find(file => file.toLowerCase().endsWith('.epub'));
+        
+        if (!epubFile) {
+          return { success: false, error: 'No EPUB file found after export' };
+        }
+
+        const exportedPath = path.join(tempDir, epubFile);
+        
+        // Ensure the output directory exists
+        await fs.mkdir(path.dirname(outputPath), { recursive: true });
+        
+        // Move the exported file to the desired location
+        await fs.rename(exportedPath, outputPath);
+
+        return { success: true };
+      } finally {
+        // Clean up the temporary directory
+        try {
+          await fs.rmdir(tempDir, { recursive: true });
+        } catch (cleanupError) {
+          console.warn(`Could not clean up temp directory: ${cleanupError}`);
+        }
+      }
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : String(error) 
+      };
+    }
+  }
+
+  private async findExportedEpub(exportDir: string, bookId: number): Promise<string | null> {
+    try {
+      const fs = await import('fs/promises');
+      const files = await fs.readdir(exportDir, { withFileTypes: true });
+      
+      for (const file of files) {
+        if (file.isFile() && file.name.toLowerCase().endsWith('.epub')) {
+          return path.join(exportDir, file.name);
+        }
+      }
+    } catch (error) {
+      console.warn(`Could not find exported EPUB for book ${bookId}: ${error}`);
+    }
+    
+    return null;
   }
 } 

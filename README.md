@@ -16,7 +16,6 @@ Sync books from your Calibre library to a target folder with intelligent filenam
 - **🔄 KOReader Integration**: Automatically updates .sdr metadata when files are moved/renamed
 - **⚡ Incremental Sync**: Only copies files that have changed
 - **🧹 Cleanup**: Removes obsolete files from target directory
-- **🔍 Dry Run**: Preview changes before applying them
 
 ### Quick Start
 
@@ -41,12 +40,8 @@ Sync books from your Calibre library to a target folder with intelligent filenam
    }
    ```
 
-3. **Run sync (dry run first):**
+3. **Run sync:**
    ```bash
-   # Preview changes
-   npm run dev -- sync --config my-sync-config.json --dry-run
-   
-   # Apply changes
    npm run dev -- sync --config my-sync-config.json
    ```
 
@@ -88,7 +83,6 @@ npm run dev -- config [options]
 
 # Options for sync:
 #   -c, --config <path>           Config file path (default: config/sync-config.json)
-#   -d, --dry-run                 Preview changes only
 #   --calibre-library <path>      Override Calibre library path
 #   --sync-target <path>          Override sync target path
 #   --koreader-path <path>        Override KOReader path
@@ -115,9 +109,6 @@ npm start -- --epub-dir ./sample/books --docsettings-dir ./sample/docsettings
 
 # With verbose output
 npm start -- --epub-dir ./sample/books --docsettings-dir ./sample/docsettings --verbose
-
-# Dry run mode (see what would change without making modifications)
-npm start -- --epub-dir ./sample/books --docsettings-dir ./sample/docsettings --dry-run --verbose
 ```
 
 ### Arguments
@@ -125,7 +116,6 @@ npm start -- --epub-dir ./sample/books --docsettings-dir ./sample/docsettings --
 - `--epub-dir, -e`: Directory containing your epub files
 - `--docsettings-dir, -d`: Directory containing KOReader docsettings
 - `--verbose, -v`: Enable verbose output (optional)
-- `--dry-run`: Show what would be changed without making any modifications (optional)
 
 ### How It Works
 
@@ -158,7 +148,6 @@ npm start -- --help
 ```
 src/
 ├── index.ts                    # CLI entry point
-├── koreader-fixer.ts          # Legacy KOReader fixer logic
 └── calibre-sync/              # New Calibre sync functionality
     ├── types.ts               # Type definitions
     ├── calibre-reader.ts      # Calibre database interface

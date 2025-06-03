@@ -1,7 +1,7 @@
 {
-  "calibreLibraryPath": "/path/to/your/calibre/library",
-  "syncTargetPath": "/path/to/your/sync/folder",
-  "koreaderPath": "/path/to/your/koreader/docsettings",
+  "calibreLibraryPath": "/Users/daniellevett/Calibre Library",
+  "syncTargetPath": "/Users/daniellevett/Downloads/Books",
+  "koreaderPath": "/Users/daniellevett/Downloads/docsettings",
   "template": "{#genre} - {author_sort} - {series:|| }{series_index:|| - }{title} ({id})",
   "fieldMappings": {
     "#genre": {
@@ -25,6 +25,5 @@
     }
   },
   "mappedFields": ["#genre"],
-  "backupSdrFiles": true,
-  "dryRun": false
+  "backupSdrFiles": true
 } 

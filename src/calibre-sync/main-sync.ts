@@ -1,5 +1,5 @@
 import path from 'path';
-import { CalibreReader } from './calibre-reader.ts';
+import { CalibreClient } from './calibre-client.ts';
 import { TemplateEngine, sanitizeFilename } from './template-engine.ts';
 import { FileOperations } from './file-operations.ts';
 import { KOReaderManager } from './koreader-manager.ts';
@@ -7,17 +7,17 @@ import type { BookMetadata, SyncConfig, SyncResult } from './types.ts';
 
 export class CalibreSync {
   private config: SyncConfig;
-  private calibreReader: CalibreReader;
+  private calibreClient: CalibreClient;
   private templateEngine: TemplateEngine;
   private fileOps: FileOperations;
   private koreaderManager: KOReaderManager;
 
   constructor(config: SyncConfig) {
     this.config = config;
-    this.calibreReader = new CalibreReader(config.calibreLibraryPath);
+    this.calibreClient = new CalibreClient(config.calibreLibraryPath);
     this.templateEngine = new TemplateEngine(config.template, config.fieldMappings);
-    this.fileOps = new FileOperations(config.dryRun);
-    this.koreaderManager = new KOReaderManager(config.koreaderPath, config.dryRun);
+    this.fileOps = new FileOperations();
+    this.koreaderManager = new KOReaderManager(config.koreaderPath);
   }
 
   async sync(): Promise<SyncResult> {
@@ -30,11 +30,11 @@ export class CalibreSync {
 
     try {
       console.log('🔗 Connecting to Calibre database...');
-      await this.calibreReader.connect();
+      await this.calibreClient.connect();
 
       console.log('📚 Reading book metadata...');
-      const books = await this.calibreReader.getAllBooks();
-      const customFields = await this.calibreReader.getCustomFields();
+      const books = await this.calibreClient.getAllBooks();
+      const customFields = await this.calibreClient.getCustomFields();
 
       console.log(`📖 Found ${books.length} books in Calibre library`);
 
@@ -46,8 +46,10 @@ export class CalibreSync {
         
         try {
           // Get custom field values
-          const customFieldValues = await this.calibreReader.getBookCustomFieldValues(book.id, customFields);
+          const customFieldValues = await this.calibreClient.getBookCustomFieldValues(book.id, customFields);
           const enrichedBook = { ...book, ...customFieldValues };
+
+          console.dir(book, { depth: null });
 
           // Generate filename using template
           const baseName = this.templateEngine.render(enrichedBook);
@@ -56,9 +58,11 @@ export class CalibreSync {
           
           currentFiles.add(filename);
 
-          // Find source epub file in Calibre library
-          const sourceEpubPath = await this.findBookEpubPath(enrichedBook);
-          if (!sourceEpubPath) {
+          // Target path for sync
+          const targetPath = path.join(this.config.syncTargetPath, filename);
+
+          // Check if book has EPUB format
+          if (!enrichedBook.formats?.includes('EPUB')) {
             result.errors.push({
               book: `${book.title} (${book.id})`,
               error: 'No EPUB format found'
@@ -66,24 +70,26 @@ export class CalibreSync {
             continue;
           }
 
-          // Target path for sync
-          const targetPath = path.join(this.config.syncTargetPath, filename);
-
-          // Copy/update the file
-          const copyResult = await this.fileOps.copyEpubFile(enrichedBook, sourceEpubPath, targetPath);
+          // Check if file needs updating (compare book's last_modified with target file)
+          const needsUpdate = await this.bookNeedsUpdate(enrichedBook, targetPath);
           
-          if (!copyResult.success) {
+          if (!needsUpdate) {
+            continue; // File is up to date
+          }
+
+          // Export book with embedded metadata using Calibre
+          const exportResult = await this.calibreClient.exportBook(book.id, targetPath);
+          
+          if (!exportResult.success) {
             result.errors.push({
               book: `${book.title} (${book.id})`,
-              error: copyResult.error || 'Copy failed'
+              error: exportResult.error || 'Export failed'
             });
             continue;
           }
 
-          if (copyResult.error !== 'File is up to date') {
-            result.updated++;
-            console.log(`📄 ${this.config.dryRun ? '[DRY RUN] ' : ''}Updated: ${filename}`);
-          }
+          result.updated++;
+          console.log(`📄 Updated: ${filename}`);
 
           // Handle KOReader metadata
           const koreaderUpdated = await this.updateKOReaderMetadata(book.id, targetPath, filename);
@@ -100,12 +106,10 @@ export class CalibreSync {
       }
 
       // Clean up obsolete files
-      if (!this.config.dryRun) {
-        console.log('🧹 Cleaning up obsolete files...');
-        const removed = await this.fileOps.removeObsoleteFiles(this.config.syncTargetPath, currentFiles);
-        if (removed.length > 0) {
-          console.log(`🗑️  Removed ${removed.length} obsolete files`);
-        }
+      console.log('🧹 Cleaning up obsolete files...');
+      const removed = await this.fileOps.removeObsoleteFiles(this.config.syncTargetPath, currentFiles);
+      if (removed.length > 0) {
+        console.log(`🗑️  Removed ${removed.length} obsolete files`);
       }
 
     } catch (error) {
@@ -114,7 +118,7 @@ export class CalibreSync {
         error: error instanceof Error ? error.message : String(error)
       });
     } finally {
-      await this.calibreReader.close();
+      await this.calibreClient.close();
     }
 
     return result;
@@ -149,13 +153,13 @@ export class CalibreSync {
         if (currentSdrName !== expectedSdrName) {
           const newSdrPath = await this.koreaderManager.renameSdrDirectory(sdrDir, filename);
           if (newSdrPath) {
-            console.log(`📁 ${this.config.dryRun ? '[DRY RUN] ' : ''}Renamed SDR: ${path.basename(sdrDir)} → ${path.basename(newSdrPath)}`);
+            console.log(`📁 Renamed SDR: ${path.basename(sdrDir)} → ${path.basename(newSdrPath)}`);
             updated = true;
           }
         }
         
         if (metadataUpdated) {
-          console.log(`🔄 ${this.config.dryRun ? '[DRY RUN] ' : ''}Updated KOReader metadata for: ${filename}`);
+          console.log(`🔄 Updated KOReader metadata for: ${filename}`);
           updated = true;
         }
       }
@@ -164,6 +168,19 @@ export class CalibreSync {
     } catch (error) {
       console.warn(`Warning: Could not update KOReader metadata for book ${bookId}: ${error}`);
       return false;
+    }
+  }
+
+  private async bookNeedsUpdate(book: BookMetadata, targetPath: string): Promise<boolean> {
+    try {
+      const fs = await import('fs/promises');
+      const targetStats = await fs.stat(targetPath);
+      
+      // If book's last_modified is newer than target file, we need to update
+      return book.last_modified > targetStats.mtime;
+    } catch (error) {
+      // If target file doesn't exist, we need to update
+      return true;
     }
   }
 } 
