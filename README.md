@@ -17,11 +17,13 @@ A TypeScript CLI tool that syncs your Calibre library to a folder with customiza
 ## Quick Start
 
 1. **Generate a config file:**
+
    ```bash
    npm run dev -- config -o my-sync-config.json
    ```
 
 2. **Edit the config to match your setup:**
+
    ```json
    {
      "calibreLibraryPath": "/path/to/calibre/library",
@@ -46,16 +48,19 @@ A TypeScript CLI tool that syncs your Calibre library to a folder with customiza
 ## Configuration Options
 
 ### Core Settings
+
 - `calibreLibraryPath`: Path to your Calibre library directory
 - `syncTargetPath`: Where to sync books to
 - `koreaderPath`: Path to KOReader's docsettings directory
 - `template`: Filename template pattern
 
 ### File Format Support
+
 - `supportedExtensions`: Array of file extensions to sync (e.g., `[".epub", ".cbz", ".pdf"]`)
 - The tool will prefer EPUB format when available, then fall back to other supported formats in order
 
 ### Advanced Settings
+
 - `fieldMappings`: Transform field values before using in filenames
 - `mappedFields`: List of fields that use mappings
 - `backupSdrFiles`: Whether to backup .sdr files before modifying
@@ -63,6 +68,7 @@ A TypeScript CLI tool that syncs your Calibre library to a folder with customiza
 ## Template System
 
 The template system supports:
+
 - **Simple fields**: `{title}`, `{author_sort}`, `{id}`
 - **Conditional content**: `{series:|| }` (show series + " " if series exists)
 - **Field mapping**: `{#genre}` applies mappings to transform values
@@ -93,7 +99,7 @@ Transform Calibre field values before using them in filenames:
 # Sync books
 npm run dev -- sync [options]
 
-# Generate config file  
+# Generate config file
 npm run dev -- config [options]
 
 # Options for sync:
@@ -105,7 +111,7 @@ npm run dev -- config [options]
 
 ## Requirements
 
-This project uses Node.js's native TypeScript support introduced in Node.js 23.6. 
+This project uses Node.js's native TypeScript support introduced in Node.js 23.6.
 
 ## Installation
 
@@ -115,6 +121,7 @@ npm start -- --help
 ```
 
 ## Project Structure
+
 ```
 src/
 ├── index.ts                    # CLI entry point
@@ -131,6 +138,7 @@ src/
 ## Examples
 
 ### Example 1: Basic Fiction Library
+
 ```json
 {
   "template": "{#genre} - {author_sort} - {title} ({id})",
@@ -142,15 +150,19 @@ src/
   }
 }
 ```
+
 Result: `01-Fiction - Asimov, Isaac - Foundation (42).epub`
 
-### Example 2: Series-Aware Organization  
+### Example 2: Series-Aware Organization
+
 ```json
 {
   "template": "{author_sort} - {series:|| }{series_index:|| - }{title} ({id})"
 }
 ```
+
 Results:
+
 - `Tolkien, J.R.R. - The Lord of the Rings 1 - The Fellowship of the Ring (123).epub`
 - `King, Stephen - The Stand (456).epub` (no series)
 

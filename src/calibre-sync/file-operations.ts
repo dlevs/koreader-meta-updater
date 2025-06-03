@@ -1,6 +1,6 @@
-import fs from 'fs/promises';
-import path from 'path';
-import type { BookMetadata } from './types.ts';
+import fs from "fs/promises";
+import path from "path";
+import type { BookMetadata } from "./types.ts";
 
 export interface CopyResult {
   success: boolean;
@@ -12,31 +12,46 @@ export interface CopyResult {
 export class FileOperations {
   private supportedExtensions: string[];
 
-  constructor(supportedExtensions: string[] = ['.epub', '.cbz', '.pdf', '.mobi', '.azw3', '.fb2']) {
-    this.supportedExtensions = supportedExtensions.map(ext => ext.toLowerCase());
+  constructor(
+    supportedExtensions: string[] = [
+      ".epub",
+      ".cbz",
+      ".pdf",
+      ".mobi",
+      ".azw3",
+      ".fb2",
+    ],
+  ) {
+    this.supportedExtensions = supportedExtensions.map((ext) =>
+      ext.toLowerCase(),
+    );
   }
 
-  async copyBookFile(book: BookMetadata, sourcePath: string, targetPath: string): Promise<CopyResult> {
+  async copyBookFile(
+    book: BookMetadata,
+    sourcePath: string,
+    targetPath: string,
+  ): Promise<CopyResult> {
     try {
       // Ensure target directory exists
       const targetDir = path.dirname(targetPath);
-      
+
       await fs.mkdir(targetDir, { recursive: true });
 
       // Check if file already exists and is newer
       const shouldCopy = await this.shouldCopyFile(sourcePath, targetPath);
-      
+
       if (!shouldCopy) {
         return {
           success: true,
           sourcePath,
           targetPath,
-          error: 'File is up to date'
+          error: "File is up to date",
         };
       }
 
       await fs.copyFile(sourcePath, targetPath);
-      
+
       // Copy file timestamps
       const stats = await fs.stat(sourcePath);
       await fs.utimes(targetPath, stats.atime, stats.mtime);
@@ -44,23 +59,26 @@ export class FileOperations {
       return {
         success: true,
         sourcePath,
-        targetPath
+        targetPath,
       };
     } catch (error) {
       return {
         success: false,
         sourcePath,
         targetPath,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
 
-  private async shouldCopyFile(sourcePath: string, targetPath: string): Promise<boolean> {
+  private async shouldCopyFile(
+    sourcePath: string,
+    targetPath: string,
+  ): Promise<boolean> {
     try {
       const [sourceStats, targetStats] = await Promise.all([
         fs.stat(sourcePath),
-        fs.stat(targetPath).catch(() => null)
+        fs.stat(targetPath).catch(() => null),
       ]);
 
       // If target doesn't exist, we should copy
@@ -80,12 +98,15 @@ export class FileOperations {
     return this.shouldCopyFile(sourcePath, targetPath);
   }
 
-  async removeObsoleteFiles(targetDir: string, currentFiles: Set<string>): Promise<string[]> {
+  async removeObsoleteFiles(
+    targetDir: string,
+    currentFiles: Set<string>,
+  ): Promise<string[]> {
     const removed: string[] = [];
-    
+
     try {
       const existingFiles = await this.findBookFiles(targetDir);
-      
+
       for (const filePath of existingFiles) {
         const fileName = path.basename(filePath);
         if (!currentFiles.has(fileName)) {
@@ -102,13 +123,13 @@ export class FileOperations {
 
   async findBookFiles(directory: string): Promise<string[]> {
     const bookFiles: string[] = [];
-    
+
     try {
       const entries = await fs.readdir(directory, { withFileTypes: true });
-      
+
       for (const entry of entries) {
         const fullPath = path.join(directory, entry.name);
-        
+
         if (entry.isDirectory()) {
           const subFiles = await this.findBookFiles(fullPath);
           bookFiles.push(...subFiles);
@@ -140,9 +161,13 @@ export class FileOperations {
   }
 
   // Build filename with ID, preserving the original extension
-  static buildFilenameWithId(baseName: string, id: number, extension: string): string {
+  static buildFilenameWithId(
+    baseName: string,
+    id: number,
+    extension: string,
+  ): string {
     // Ensure extension starts with a dot
-    const ext = extension.startsWith('.') ? extension : `.${extension}`;
+    const ext = extension.startsWith(".") ? extension : `.${extension}`;
     return `${baseName} (${id})${ext}`;
   }
 
@@ -160,4 +185,4 @@ export class FileOperations {
   getSupportedExtensions(): string[] {
     return [...this.supportedExtensions];
   }
-} 
+}

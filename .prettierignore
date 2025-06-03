@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Logs
+*.log
+
+# Package files
+package-lock.json
+yarn.lock
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Configuration files (that should maintain specific formatting)
+tsconfig.json
+tsconfig.*.json
+
+# Git
+.git/
+
+# Other
+*.min.js
+*.min.css
+.DS_Store
+coverage/
+.nyc_output/
+
+# Backups
+.backups/ 

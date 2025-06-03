@@ -1,35 +1,21 @@
-import sqlite3 from 'sqlite3';
-import path from 'path';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import type { BookMetadata } from './types.ts';
+import Database from "better-sqlite3";
+import path from "path";
+import { exec } from "child_process";
+import { promisify } from "util";
+import type { BookMetadata } from "./types.ts";
 
 const execAsync = promisify(exec);
 
 export class CalibreClient {
-  private db: sqlite3.Database | null = null;
-  private libraryPath: string;
+  private db;
 
   constructor(libraryPath: string) {
-    this.libraryPath = libraryPath;
-  }
-
-  async connect(): Promise<void> {
-    const dbPath = path.join(this.libraryPath, 'metadata.db');
-    
-    return new Promise((resolve, reject) => {
-      this.db = new sqlite3.Database(dbPath, (err: Error | null) => {
-        if (err) {
-          reject(new Error(`Failed to open Calibre database at ${dbPath}: ${err.message}`));
-        } else {
-          resolve();
-        }
-      });
-    });
+    const dbPath = path.join(libraryPath, "metadata.db");
+    this.db = new Database(dbPath);
   }
 
   async getAllBooks(): Promise<BookMetadata[]> {
-    if (!this.db) throw new Error('Database not connected');
+    if (!this.db) throw new Error("Database not connected");
 
     const query = `
       SELECT 
@@ -52,33 +38,26 @@ export class CalibreClient {
       GROUP BY b.id
     `;
 
-    return new Promise((resolve, reject) => {
-      this.db!.all(query, (err: Error | null, rows: any[]) => {
-        if (err) {
-          reject(err);
-          return;
-        }
+    const rows = this.db.prepare(query).all() as any[];
 
-        const books: BookMetadata[] = rows.map(row => ({
-          id: row.id,
-          title: row.title,
-          author_sort: row.author_sort,
-          authors: row.authors || '',
-          series: row.series_name,
-          series_index: row.series_index,
-          timestamp: new Date(row.timestamp),
-          last_modified: new Date(row.last_modified),
-          path: row.path,
-          formats: row.formats ? row.formats.split(',') : []
-        }));
+    const books: BookMetadata[] = rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      author_sort: row.author_sort,
+      authors: row.authors || "",
+      series: row.series_name,
+      series_index: row.series_index,
+      timestamp: new Date(row.timestamp),
+      last_modified: new Date(row.last_modified),
+      path: row.path,
+      formats: row.formats ? row.formats.split(",") : [],
+    }));
 
-        resolve(books);
-      });
-    });
+    return books;
   }
 
   async getCustomFields(): Promise<Record<string, any>> {
-    if (!this.db) throw new Error('Database not connected');
+    if (!this.db) throw new Error("Database not connected");
 
     const query = `
       SELECT 
@@ -91,7 +70,7 @@ export class CalibreClient {
     `;
 
     return new Promise((resolve, reject) => {
-      this.db!.all(query, (err: Error | null, rows: any[]) => {
+      this.db.all(query, (err: Error | null, rows: any[]) => {
         if (err) {
           reject(err);
           return;
@@ -101,7 +80,7 @@ export class CalibreClient {
           acc[row.label] = {
             name: row.name,
             datatype: row.datatype,
-            id: row.id
+            id: row.id,
           };
           return acc;
         }, {});
@@ -111,18 +90,22 @@ export class CalibreClient {
     });
   }
 
-  async getBookCustomFieldValues(bookId: number, customFields: Record<string, any>): Promise<Record<string, any>> {
-    if (!this.db) throw new Error('Database not connected');
-    
+  async getBookCustomFieldValues(
+    bookId: number,
+    customFields: Record<string, any>,
+  ): Promise<Record<string, any>> {
+    if (!this.db) throw new Error("Database not connected");
+
     const values: Record<string, any> = {};
 
     for (const [label, field] of Object.entries(customFields)) {
+      console.log(label, field);
       const tableName = `custom_column_${field.id}`;
       const query = `SELECT value FROM ${tableName} WHERE book = ?`;
 
       try {
         const value = await new Promise((resolve, reject) => {
-          this.db!.get(query, [bookId], (err: Error | null, row: any) => {
+          this.db.get(query, [bookId], (err: Error | null, row: any) => {
             if (err) {
               reject(err);
             } else {
@@ -130,7 +113,7 @@ export class CalibreClient {
             }
           });
         });
-        
+
         if (value !== null) {
           values[label] = value;
         }
@@ -146,7 +129,7 @@ export class CalibreClient {
   async close(): Promise<void> {
     if (this.db) {
       return new Promise((resolve, reject) => {
-        this.db!.close((err: Error | null) => {
+        this.db.close((err: Error | null) => {
           if (err) {
             reject(err);
           } else {
@@ -159,38 +142,48 @@ export class CalibreClient {
   }
 
   /**
-   * Export a book to EPUB format with embedded metadata using calibredb
+   * Export a book in the specified format with embedded metadata using calibredb
    */
-  async exportBook(bookId: number, outputPath: string): Promise<{ success: boolean; error?: string }> {
+  async exportBook(
+    bookId: number,
+    outputPath: string,
+    format: string = "EPUB",
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       // Create a temporary directory for export
-      const fs = await import('fs/promises');
-      const os = await import('os');
-      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'calibre-export-'));
-      
+      const fs = await import("fs/promises");
+      const os = await import("os");
+      const tempDir = await fs.mkdtemp(
+        path.join(os.tmpdir(), "calibre-export-"),
+      );
+
       try {
-        // Use calibredb to export the book with embedded metadata
-        const command = `calibredb export --library-path="${this.libraryPath}" --formats=EPUB --single-dir --to-dir="${tempDir}" ${bookId}`;
-        
+        // Use calibredb to export the book with embedded metadata in the specified format
+        const formatUpper = format.toUpperCase();
+        const command = `calibredb export --library-path="${this.libraryPath}" --formats=${formatUpper} --single-dir --to-dir="${tempDir}" ${bookId}`;
+
         const { stdout, stderr } = await execAsync(command);
-        
-        if (stderr && !stderr.includes('WARNING')) {
+
+        if (stderr && !stderr.includes("WARNING")) {
           return { success: false, error: stderr };
         }
 
-        // Find the exported EPUB file in the temp directory
+        // Find the exported book file in the temp directory
         const files = await fs.readdir(tempDir);
-        const epubFile = files.find(file => file.toLowerCase().endsWith('.epub'));
-        
-        if (!epubFile) {
-          return { success: false, error: 'No EPUB file found after export' };
+        const bookFile = this.findExportedFile(files, format);
+
+        if (!bookFile) {
+          return {
+            success: false,
+            error: `No ${format.toUpperCase()} file found after export`,
+          };
         }
 
-        const exportedPath = path.join(tempDir, epubFile);
-        
+        const exportedPath = path.join(tempDir, bookFile);
+
         // Ensure the output directory exists
         await fs.mkdir(path.dirname(outputPath), { recursive: true });
-        
+
         // Move the exported file to the desired location
         await fs.rename(exportedPath, outputPath);
 
@@ -204,27 +197,39 @@ export class CalibreClient {
         }
       }
     } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : String(error) 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
 
-  private async findExportedEpub(exportDir: string, bookId: number): Promise<string | null> {
+  private findExportedFile(files: string[], format: string): string | null {
+    const extension = `.${format.toLowerCase()}`;
+    return files.find((file) => file.toLowerCase().endsWith(extension)) || null;
+  }
+
+  private async findExportedBook(
+    exportDir: string,
+    bookId: number,
+    format: string,
+  ): Promise<string | null> {
     try {
-      const fs = await import('fs/promises');
+      const fs = await import("fs/promises");
       const files = await fs.readdir(exportDir, { withFileTypes: true });
-      
+      const extension = `.${format.toLowerCase()}`;
+
       for (const file of files) {
-        if (file.isFile() && file.name.toLowerCase().endsWith('.epub')) {
+        if (file.isFile() && file.name.toLowerCase().endsWith(extension)) {
           return path.join(exportDir, file.name);
         }
       }
     } catch (error) {
-      console.warn(`Could not find exported EPUB for book ${bookId}: ${error}`);
+      console.warn(
+        `Could not find exported ${format.toUpperCase()} for book ${bookId}: ${error}`,
+      );
     }
-    
+
     return null;
   }
-} 
+}

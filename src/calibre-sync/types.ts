@@ -34,4 +34,4 @@ export interface FieldMapping {
   fieldName: string;
   mappings: Record<string, string>;
   defaultValue?: string;
-} 
+}
