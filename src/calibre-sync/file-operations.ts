@@ -20,17 +20,17 @@ export class FileOperations {
       ".mobi",
       ".azw3",
       ".fb2",
-    ],
+    ]
   ) {
     this.supportedExtensions = supportedExtensions.map((ext) =>
-      ext.toLowerCase(),
+      ext.toLowerCase()
     );
   }
 
   async copyBookFile(
     book: BookMetadata,
     sourcePath: string,
-    targetPath: string,
+    targetPath: string
   ): Promise<CopyResult> {
     try {
       // Ensure target directory exists
@@ -73,7 +73,7 @@ export class FileOperations {
 
   private async shouldCopyFile(
     sourcePath: string,
-    targetPath: string,
+    targetPath: string
   ): Promise<boolean> {
     try {
       const [sourceStats, targetStats] = await Promise.all([
@@ -100,7 +100,7 @@ export class FileOperations {
 
   async removeObsoleteFiles(
     targetDir: string,
-    currentFiles: Set<string>,
+    currentFiles: Set<string>
   ): Promise<string[]> {
     const removed: string[] = [];
 
@@ -164,11 +164,11 @@ export class FileOperations {
   static buildFilenameWithId(
     baseName: string,
     id: number,
-    extension: string,
+    extension: string
   ): string {
     // Ensure extension starts with a dot
     const ext = extension.startsWith(".") ? extension : `.${extension}`;
-    return `${baseName} (${id})${ext}`;
+    return `${baseName}${ext}`;
   }
 
   // Get file extension from a filename

@@ -124,7 +124,7 @@ export class CalibreClient {
         }
 
         if (value !== null && value !== undefined) {
-          values[label] = value;
+          values[`#${label}`] = value;
         }
       } catch (error) {
         console.log(error);

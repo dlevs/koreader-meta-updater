@@ -1,113 +1,51 @@
 # Calibre Sync
 
-A TypeScript CLI tool that syncs your Calibre library to a folder with customizable filename templates and field mappings, while preserving KOReader metadata.
+A TypeScript CLI tool that syncs your Calibre library to a folder with smart filename generation and genre mapping, while preserving KOReader metadata.
 
 > [!Warning]
 > This project was vibe coded. If it deletes your library, I take no responsibility. Back stuff up first.
 
 ## 🚀 Features
 
-- **📚 Multi-Format Support**: Handles EPUB, CBZ, PDF, MOBI, AZW3, and FB2 formats
-- **📋 Template-based Naming**: Use customizable templates like `{#genre} - {author_sort} - {series:|| }{series_index:|| - }{title} ({id})`
-- **🗂️ Field Mapping**: Map Calibre field values (e.g., map "Fiction" → "0100 - Fiction" for sorting)
+- **📚 Multi-Format Support**: Handles EPUB, CBZ, PDF formats
+- **🗂️ Smart Naming**: Generates filenames like `0100 - Fiction - Asimov, Isaac - Foundation 1 - Second Foundation (42)`
 - **🔄 KOReader Integration**: Automatically updates .sdr metadata when files are moved/renamed
 - **⚡ Incremental Sync**: Only copies files that have changed
 - **🧹 Cleanup**: Removes obsolete files from target directory
 
 ## Quick Start
 
-1. **Generate a config file:**
-
+1. **Edit the configuration in `src/config.ts`**
+2. **Run sync:**
    ```bash
-   npm run dev -- config -o my-sync-config.json
+   npm run dev -- sync
    ```
 
-2. **Edit the config to match your setup:**
+## Configuration
 
-   ```json
-   {
-     "calibreLibraryPath": "/path/to/calibre/library",
-     "syncTargetPath": "/path/to/sync/folder",
-     "koreaderPath": "/path/to/koreader/docsettings",
-     "template": "{#genre} - {author_sort} - {series:|| }{series_index:|| - }{title} ({id})",
-     "supportedExtensions": [".epub", ".cbz", ".pdf", ".mobi", ".azw3", ".fb2"],
-     "fieldMappings": {
-       "#genre": {
-         "Fiction": "0100 - Fiction",
-         "Fantasy": "0200 - Fantasy"
-       }
-     }
-   }
-   ```
+Edit `src/config.ts` to configure your paths and preferences:
 
-3. **Run sync:**
-   ```bash
-   npm run dev -- sync --config my-sync-config.json
-   ```
+```typescript
+export const config = {
+  paths: {
+    calibreLibrary: "/Users/username/Calibre Library",
+    syncTarget: "/Users/username/Downloads/Books",
+    koreaderSettings: "/Users/username/Downloads/docsettings",
+  },
 
-## Configuration Options
+  files: {
+    supportedExtensions: [".epub", ".cbz", ".pdf"],
+    backupSdrFiles: true,
+  },
 
-### Core Settings
-
-- `calibreLibraryPath`: Path to your Calibre library directory
-- `syncTargetPath`: Where to sync books to
-- `koreaderPath`: Path to KOReader's docsettings directory
-- `template`: Filename template pattern
-
-### File Format Support
-
-- `supportedExtensions`: Array of file extensions to sync (e.g., `[".epub", ".cbz", ".pdf"]`)
-- The tool will prefer EPUB format when available, then fall back to other supported formats in order
-
-### Advanced Settings
-
-- `fieldMappings`: Transform field values before using in filenames
-- `mappedFields`: List of fields that use mappings
-- `backupSdrFiles`: Whether to backup .sdr files before modifying
-
-## Template System
-
-The template system supports:
-
-- **Simple fields**: `{title}`, `{author_sort}`, `{id}`
-- **Conditional content**: `{series:|| }` (show series + " " if series exists)
-- **Field mapping**: `{#genre}` applies mappings to transform values
-- **Series formatting**: `{series:|| }{series_index:|| - }` handles series gracefully
-
-## Field Mapping
-
-Transform Calibre field values before using them in filenames:
-
-```json
-{
-  "fieldMappings": {
-    "#genre": {
-      "Fiction": "0100 - Fiction",
-      "Science Fiction": "0300 - Science Fiction"
-    },
-    "#rating": {
-      "5": "⭐⭐⭐⭐⭐",
-      "4": "⭐⭐⭐⭐"
-    }
-  }
-}
+  buildFilename,
+};
 ```
 
-## CLI Commands
+The `buildFilename` function automatically generates names like:
 
-```bash
-# Sync books
-npm run dev -- sync [options]
-
-# Generate config file
-npm run dev -- config [options]
-
-# Options for sync:
-#   -c, --config <path>           Config file path (default: config/sync-config.json)
-#   --calibre-library <path>      Override Calibre library path
-#   --sync-target <path>          Override sync target path
-#   --koreader-path <path>        Override KOReader path
-```
+- `0100 - Fiction - Tolkien, J.R.R. - The Lord of the Rings 1 - The Fellowship of the Ring (123).epub`
+- `1000 - Non-Fiction - Hawking, Stephen - A Brief History of Time (456).pdf`
 
 ## Requirements
 
@@ -125,46 +63,15 @@ npm start -- --help
 ```
 src/
 ├── index.ts                    # CLI entry point
+├── config.ts                   # Configuration & filename builder
 └── calibre-sync/              # Calibre sync functionality
     ├── types.ts               # Type definitions
-    ├── calibre-reader.ts      # Calibre database interface
-    ├── template-engine.ts     # Filename template system
+    ├── calibre-client.ts      # Calibre database interface
     ├── file-operations.ts     # File copy/management
     ├── koreader-manager.ts    # KOReader .sdr handling
     ├── main-sync.ts          # Main sync orchestrator
     └── cli.ts                # CLI interface
 ```
-
-## Examples
-
-### Example 1: Basic Fiction Library
-
-```json
-{
-  "template": "{#genre} - {author_sort} - {title} ({id})",
-  "fieldMappings": {
-    "#genre": {
-      "Fiction": "01-Fiction",
-      "Non-Fiction": "02-NonFiction"
-    }
-  }
-}
-```
-
-Result: `01-Fiction - Asimov, Isaac - Foundation (42).epub`
-
-### Example 2: Series-Aware Organization
-
-```json
-{
-  "template": "{author_sort} - {series:|| }{series_index:|| - }{title} ({id})"
-}
-```
-
-Results:
-
-- `Tolkien, J.R.R. - The Lord of the Rings 1 - The Fellowship of the Ring (123).epub`
-- `King, Stephen - The Stand (456).epub` (no series)
 
 ## License
 

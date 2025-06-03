@@ -12,17 +12,6 @@ export interface BookMetadata {
   [key: string]: any; // Support custom fields
 }
 
-export interface SyncConfig {
-  calibreLibraryPath: string;
-  syncTargetPath: string;
-  koreaderPath: string;
-  template: string;
-  supportedExtensions: string[];
-  fieldMappings: Record<string, Record<string, string>>;
-  mappedFields: string[];
-  backupSdrFiles: boolean;
-}
-
 export interface SyncResult {
   processed: number;
   updated: number;

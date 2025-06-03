@@ -1,26 +1,19 @@
 import path from "path";
 import { CalibreClient } from "./calibre-client.ts";
-import { TemplateEngine, sanitizeFilename } from "./template-engine.ts";
 import { FileOperations } from "./file-operations.ts";
 import { KOReaderManager } from "./koreader-manager.ts";
-import type { BookMetadata, SyncConfig, SyncResult } from "./types.ts";
+import { config } from "../config.ts";
+import type { BookMetadata, SyncResult } from "./types.ts";
 
 export class CalibreSync {
-  private config: SyncConfig;
   private calibreClient: CalibreClient;
-  private templateEngine: TemplateEngine;
   private fileOps: FileOperations;
   private koreaderManager: KOReaderManager;
 
-  constructor(config: SyncConfig) {
-    this.config = config;
-    this.calibreClient = new CalibreClient(config.calibreLibraryPath);
-    this.templateEngine = new TemplateEngine(
-      config.template,
-      config.fieldMappings
-    );
-    this.fileOps = new FileOperations(config.supportedExtensions);
-    this.koreaderManager = new KOReaderManager(config.koreaderPath);
+  constructor() {
+    this.calibreClient = new CalibreClient(config.paths.calibreLibrary);
+    this.fileOps = new FileOperations(config.files.supportedExtensions);
+    this.koreaderManager = new KOReaderManager(config.paths.koreaderSettings);
   }
 
   async sync(): Promise<SyncResult> {
@@ -65,11 +58,10 @@ export class CalibreSync {
             continue;
           }
 
-          // Generate filename using template
-          const baseName = this.templateEngine.render(enrichedBook);
-          const safeBaseName = sanitizeFilename(baseName);
+          // Generate filename using config function
+          const baseName = config.buildFilename(enrichedBook);
           const filename = FileOperations.buildFilenameWithId(
-            safeBaseName,
+            baseName,
             book.id,
             preferredFormat.toLowerCase()
           );
@@ -77,7 +69,7 @@ export class CalibreSync {
           currentFiles.add(filename);
 
           // Target path for sync
-          const targetPath = path.join(this.config.syncTargetPath, filename);
+          const targetPath = path.join(config.paths.syncTarget, filename);
 
           // Check if file needs updating (compare book's last_modified with target file)
           const needsUpdate = await this.bookNeedsUpdate(
@@ -127,7 +119,7 @@ export class CalibreSync {
       // Clean up obsolete files
       console.log("🧹 Cleaning up obsolete files...");
       const removed = await this.fileOps.removeObsoleteFiles(
-        this.config.syncTargetPath,
+        config.paths.syncTarget,
         currentFiles
       );
       if (removed.length > 0) {
@@ -168,7 +160,7 @@ export class CalibreSync {
   }
 
   private async findBookFilePath(book: BookMetadata): Promise<string | null> {
-    const bookDir = path.join(this.config.calibreLibraryPath, book.path);
+    const bookDir = path.join(config.paths.calibreLibrary, book.path);
 
     try {
       const bookFiles = await this.fileOps.findBookFiles(bookDir);
