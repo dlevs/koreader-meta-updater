@@ -1,14 +1,29 @@
-export interface BookMetadata {
-  id: number;
-  title: string;
-  author_sort: string;
-  authors?: string;
-  series?: string;
-  series_index?: number;
-  [key: string]: any;
-}
+import type { BookMetadata } from "./calibre-sync/types";
 
-const genreMappings = {
+// TODO: Import a type for this
+export const config = {
+  paths: {
+    calibreLibrary: "/Users/daniellevett/Calibre Library",
+    syncTarget: "/Users/daniellevett/Downloads/Books",
+    koreaderSettings: "/Users/daniellevett/Downloads/docsettings",
+  },
+  files: {
+    supportedExtensions: [".epub", ".cbz", ".pdf"],
+    backupSdrFiles: true,
+  },
+  buildFilename(book: BookMetadata): string {
+    return [
+      genreMappings[book["#genre"]] ?? book["#genre"],
+      book.author_sort,
+      book.series ? `${book.series} ${book.series_index}` : book.series,
+      `${book.title} (${book.id})`,
+    ]
+      .filter(Boolean)
+      .join(" - ");
+  },
+};
+
+const genreMappings: Record<string, string> = {
   Fiction: "0100 - Fiction",
   Fantasy: "0200 - Fantasy",
   "Science Fiction": "0300 - Science Fiction",
@@ -26,55 +41,4 @@ const genreMappings = {
   "Self-Help": "1500 - Self-Help",
   Business: "1600 - Business",
   Reference: "1700 - Reference",
-};
-
-function sanitizeFilename(filename: string): string {
-  return filename
-    .replace(/[<>:"/\\|?*]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function buildFilename(book: BookMetadata): string {
-  const parts: string[] = [];
-
-  // Add mapped genre
-  if (book["#genre"]) {
-    const mappedGenre =
-      genreMappings[book["#genre"] as keyof typeof genreMappings];
-    parts.push(mappedGenre ?? book["#genre"]);
-  }
-
-  // Add author
-  if (book.author_sort) {
-    parts.push(book.author_sort);
-  }
-
-  // Add series info
-  if (book.series) {
-    const seriesPart = book.series_index
-      ? `${book.series} ${book.series_index}`
-      : book.series;
-    parts.push(seriesPart);
-  }
-
-  // Add title and ID
-  parts.push(`${book.title} (${book.id})`);
-
-  return sanitizeFilename(parts.join(" - "));
-}
-
-export const config = {
-  paths: {
-    calibreLibrary: "/Users/daniellevett/Calibre Library",
-    syncTarget: "/Users/daniellevett/Downloads/Books",
-    koreaderSettings: "/Users/daniellevett/Downloads/docsettings",
-  },
-
-  files: {
-    supportedExtensions: [".epub", ".cbz", ".pdf"],
-    backupSdrFiles: true,
-  },
-
-  buildFilename,
 };
