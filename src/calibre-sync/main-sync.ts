@@ -17,7 +17,7 @@ export class CalibreSync {
     this.calibreClient = new CalibreClient(config.calibreLibraryPath);
     this.templateEngine = new TemplateEngine(
       config.template,
-      config.fieldMappings,
+      config.fieldMappings
     );
     this.fileOps = new FileOperations(config.supportedExtensions);
     this.koreaderManager = new KOReaderManager(config.koreaderPath);
@@ -33,8 +33,8 @@ export class CalibreSync {
 
     try {
       console.log("📚 Reading book metadata...");
-      const books = await this.calibreClient.getAllBooks();
-      const customFields = await this.calibreClient.getCustomFields();
+      const books = this.calibreClient.getAllBooks();
+      const customFields = this.calibreClient.getCustomFields();
 
       console.log(`📖 Found ${books.length} books in Calibre library`);
 
@@ -46,16 +46,15 @@ export class CalibreSync {
 
         try {
           // Get custom field values
-          const customFieldValues =
-            await this.calibreClient.getBookCustomFieldValues(
-              book.id,
-              customFields,
-            );
+          const customFieldValues = this.calibreClient.getBookCustomFieldValues(
+            book.id,
+            customFields
+          );
           const enrichedBook = { ...book, ...customFieldValues };
 
           // Find preferred format from available formats
           const preferredFormat = this.getPreferredFormat(
-            enrichedBook.formats || [],
+            enrichedBook.formats || []
           );
 
           if (!preferredFormat) {
@@ -72,7 +71,7 @@ export class CalibreSync {
           const filename = FileOperations.buildFilenameWithId(
             safeBaseName,
             book.id,
-            preferredFormat.toLowerCase(),
+            preferredFormat.toLowerCase()
           );
 
           currentFiles.add(filename);
@@ -83,7 +82,7 @@ export class CalibreSync {
           // Check if file needs updating (compare book's last_modified with target file)
           const needsUpdate = await this.bookNeedsUpdate(
             enrichedBook,
-            targetPath,
+            targetPath
           );
 
           if (!needsUpdate) {
@@ -94,7 +93,7 @@ export class CalibreSync {
           const exportResult = await this.calibreClient.exportBook(
             book.id,
             targetPath,
-            preferredFormat,
+            preferredFormat
           );
 
           if (!exportResult.success) {
@@ -112,7 +111,7 @@ export class CalibreSync {
           const koreaderUpdated = await this.updateKOReaderMetadata(
             book.id,
             targetPath,
-            filename,
+            filename
           );
           if (koreaderUpdated) {
             result.koreaderUpdates++;
@@ -129,7 +128,7 @@ export class CalibreSync {
       console.log("🧹 Cleaning up obsolete files...");
       const removed = await this.fileOps.removeObsoleteFiles(
         this.config.syncTargetPath,
-        currentFiles,
+        currentFiles
       );
       if (removed.length > 0) {
         console.log(`🗑️  Removed ${removed.length} obsolete files`);
@@ -140,7 +139,7 @@ export class CalibreSync {
         error: error instanceof Error ? error.message : String(error),
       });
     } finally {
-      await this.calibreClient.close();
+      this.calibreClient.close();
     }
 
     return result;
@@ -182,7 +181,7 @@ export class CalibreSync {
   private async updateKOReaderMetadata(
     bookId: number,
     targetPath: string,
-    filename: string,
+    filename: string
   ): Promise<boolean> {
     try {
       // Find existing .sdr directories for this book ID
@@ -194,7 +193,7 @@ export class CalibreSync {
         // Update the doc_path in metadata
         const metadataUpdated = await this.koreaderManager.updateSdrMetadata(
           sdrDir,
-          targetPath,
+          targetPath
         );
 
         // Rename .sdr directory if needed
@@ -202,17 +201,17 @@ export class CalibreSync {
         const fileExtension = FileOperations.getFileExtension(filename);
         const expectedSdrName = filename.replace(
           new RegExp(`\\${fileExtension}$`, "i"),
-          ".sdr",
+          ".sdr"
         );
 
         if (currentSdrName !== expectedSdrName) {
           const newSdrPath = await this.koreaderManager.renameSdrDirectory(
             sdrDir,
-            filename,
+            filename
           );
           if (newSdrPath) {
             console.log(
-              `📁 Renamed SDR: ${path.basename(sdrDir)} → ${path.basename(newSdrPath)}`,
+              `📁 Renamed SDR: ${path.basename(sdrDir)} → ${path.basename(newSdrPath)}`
             );
             updated = true;
           }
@@ -227,7 +226,7 @@ export class CalibreSync {
       return updated;
     } catch (error) {
       console.warn(
-        `Warning: Could not update KOReader metadata for book ${bookId}: ${error}`,
+        `Warning: Could not update KOReader metadata for book ${bookId}: ${error}`
       );
       return false;
     }
@@ -235,7 +234,7 @@ export class CalibreSync {
 
   private async bookNeedsUpdate(
     book: BookMetadata,
-    targetPath: string,
+    targetPath: string
   ): Promise<boolean> {
     try {
       const fs = await import("fs/promises");

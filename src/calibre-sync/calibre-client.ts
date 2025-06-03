@@ -1,5 +1,7 @@
+import fs from "fs/promises";
+import os from "os";
 import Database from "better-sqlite3";
-import path from "path";
+import path, { resolve } from "path";
 import { exec } from "child_process";
 import { promisify } from "util";
 import type { BookMetadata } from "./types.ts";
@@ -8,13 +10,15 @@ const execAsync = promisify(exec);
 
 export class CalibreClient {
   private db;
+  private libraryPath: string;
 
   constructor(libraryPath: string) {
     const dbPath = path.join(libraryPath, "metadata.db");
+    this.libraryPath = libraryPath;
     this.db = new Database(dbPath);
   }
 
-  async getAllBooks(): Promise<BookMetadata[]> {
+  getAllBooks(): BookMetadata[] {
     if (!this.db) throw new Error("Database not connected");
 
     const query = `
@@ -56,7 +60,7 @@ export class CalibreClient {
     return books;
   }
 
-  async getCustomFields(): Promise<Record<string, any>> {
+  getCustomFields(): Record<string, any> {
     if (!this.db) throw new Error("Database not connected");
 
     const query = `
@@ -69,56 +73,61 @@ export class CalibreClient {
       WHERE cc.display != '{}'
     `;
 
-    return new Promise((resolve, reject) => {
-      this.db.all(query, (err: Error | null, rows: any[]) => {
-        if (err) {
-          reject(err);
-          return;
-        }
+    const rows = this.db.prepare(query).all() as any[];
 
-        const fields = rows.reduce((acc, row) => {
-          acc[row.label] = {
-            name: row.name,
-            datatype: row.datatype,
-            id: row.id,
-          };
-          return acc;
-        }, {});
+    const fields = rows.reduce((acc, row) => {
+      acc[row.label] = {
+        name: row.name,
+        datatype: row.datatype,
+        id: row.id,
+      };
+      return acc;
+    }, {});
 
-        resolve(fields);
-      });
-    });
+    return fields;
   }
 
-  async getBookCustomFieldValues(
+  getBookCustomFieldValues(
     bookId: number,
-    customFields: Record<string, any>,
-  ): Promise<Record<string, any>> {
+    customFields: Record<string, any>
+  ): Record<string, any> {
     if (!this.db) throw new Error("Database not connected");
 
     const values: Record<string, any> = {};
 
     for (const [label, field] of Object.entries(customFields)) {
-      console.log(label, field);
       const tableName = `custom_column_${field.id}`;
-      const query = `SELECT value FROM ${tableName} WHERE book = ?`;
 
       try {
-        const value = await new Promise((resolve, reject) => {
-          this.db.get(query, [bookId], (err: Error | null, row: any) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(row?.value || null);
-            }
-          });
-        });
+        let value = null;
 
-        if (value !== null) {
+        if (field.datatype === "enumeration") {
+          // Handle enum columns using the linking table
+          const linkTableName = `books_custom_column_${field.id}_link`;
+          const enumQuery = `
+            SELECT GROUP_CONCAT(cc.value, ', ') as value
+            FROM ${linkTableName} bcl
+            JOIN ${tableName} cc ON bcl.value = cc.id
+            WHERE bcl.book = ?
+          `;
+          const enumResult = this.db.prepare(enumQuery).get(bookId) as any;
+          if (enumResult && enumResult.value) {
+            value = enumResult.value;
+          }
+        } else {
+          // Handle simple columns (bool, text, int, float, etc.)
+          const simpleQuery = `SELECT value FROM ${tableName} WHERE book = ?`;
+          const simpleResult = this.db.prepare(simpleQuery).get(bookId) as any;
+          if (simpleResult) {
+            value = simpleResult.value;
+          }
+        }
+
+        if (value !== null && value !== undefined) {
           values[label] = value;
         }
       } catch (error) {
-        // Ignore missing custom field tables
+        console.log(error);
         console.warn(`Could not read custom field ${label} for book ${bookId}`);
       }
     }
@@ -126,19 +135,8 @@ export class CalibreClient {
     return values;
   }
 
-  async close(): Promise<void> {
-    if (this.db) {
-      return new Promise((resolve, reject) => {
-        this.db.close((err: Error | null) => {
-          if (err) {
-            reject(err);
-          } else {
-            this.db = null;
-            resolve();
-          }
-        });
-      });
-    }
+  close() {
+    this.db.close();
   }
 
   /**
@@ -147,14 +145,12 @@ export class CalibreClient {
   async exportBook(
     bookId: number,
     outputPath: string,
-    format: string = "EPUB",
+    format: string = "EPUB"
   ): Promise<{ success: boolean; error?: string }> {
     try {
       // Create a temporary directory for export
-      const fs = await import("fs/promises");
-      const os = await import("os");
       const tempDir = await fs.mkdtemp(
-        path.join(os.tmpdir(), "calibre-export-"),
+        path.join(os.tmpdir(), "calibre-export-")
       );
 
       try {
@@ -212,7 +208,7 @@ export class CalibreClient {
   private async findExportedBook(
     exportDir: string,
     bookId: number,
-    format: string,
+    format: string
   ): Promise<string | null> {
     try {
       const fs = await import("fs/promises");
@@ -226,7 +222,7 @@ export class CalibreClient {
       }
     } catch (error) {
       console.warn(
-        `Could not find exported ${format.toUpperCase()} for book ${bookId}: ${error}`,
+        `Could not find exported ${format.toUpperCase()} for book ${bookId}: ${error}`
       );
     }
 
