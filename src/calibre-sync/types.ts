@@ -24,3 +24,16 @@ export interface FieldMapping {
   mappings: Record<string, string>;
   defaultValue?: string;
 }
+
+export interface Config {
+  paths: {
+    calibreLibrary: string;
+    syncTarget: string;
+    koreaderSettings: string;
+  };
+  files: {
+    supportedExtensions: string[];
+    backupSdrFiles: boolean;
+  };
+  buildFilename(book: BookMetadata): string;
+}

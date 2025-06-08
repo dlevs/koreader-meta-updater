@@ -1,7 +1,6 @@
-import type { BookMetadata } from "./calibre-sync/types";
+import type { BookMetadata, Config } from "./calibre-sync/types";
 
-// TODO: Import a type for this
-export const config = {
+export const config: Config = {
   paths: {
     calibreLibrary: "/Users/daniellevett/Calibre Library",
     syncTarget: "/Users/daniellevett/Downloads/Books",
